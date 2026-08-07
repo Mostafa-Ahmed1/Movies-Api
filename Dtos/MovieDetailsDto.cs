@@ -1,19 +1,13 @@
-﻿namespace MoviesAPI.Dtos
+namespace MoviesAPI.Dtos;
+
+public sealed class MovieDetailsDto
 {
-    public class MovieDetailsDto
-    {
-        public int Id { get; set; }
-        public string Title { get; set; }
-
-        public int Year { get; set; }
-
-        public double Rate { get; set; }
-
-        public string Storeline { get; set; }
-
-        public byte[] Poster { get; set; }
-
-        public byte GenreId { get; set; }
-        public string GenreName { get; set; }
-    }
+    public int Id { get; init; }
+    public string Title { get; init; } = string.Empty;
+    public int Year { get; init; }
+    public double Rate { get; init; }
+    public string Storeline { get; init; } = string.Empty;
+    public byte[] Poster { get; init; } = Array.Empty<byte>();
+    public byte GenreId { get; init; }
+    public string GenreName { get; init; } = string.Empty;
 }
