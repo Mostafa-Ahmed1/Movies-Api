@@ -23,8 +23,8 @@ public sealed class ApiIntegrationTests
     [TestCleanup]
     public void Cleanup()
     {
-        _client.Dispose();
-        _factory.Dispose();
+        _client?.Dispose();
+        _factory?.Dispose();
     }
 
     [TestMethod]
