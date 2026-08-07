@@ -1,9 +1,10 @@
+using System.Data.Common;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using MoviesAPI.Models;
 
@@ -11,34 +12,36 @@ namespace MoviesAPI.Tests;
 
 public sealed class MoviesApiFactory : WebApplicationFactory<Program>
 {
-    private SqliteConnection? _connection;
-
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
 
         builder.ConfigureServices(services =>
         {
-            services.RemoveAll<DbContextOptions<ApplicationDbContext>>();
-            services.RemoveAll<ApplicationDbContext>();
+            var dbContextConfiguration = services.SingleOrDefault(descriptor =>
+                descriptor.ServiceType == typeof(IDbContextOptionsConfiguration<ApplicationDbContext>));
 
-            _connection = new SqliteConnection("Data Source=:memory:");
-            _connection.Open();
+            if (dbContextConfiguration is not null)
+                services.Remove(dbContextConfiguration);
 
-            services.AddSingleton(_connection);
+            var dbConnection = services.SingleOrDefault(descriptor =>
+                descriptor.ServiceType == typeof(DbConnection));
+
+            if (dbConnection is not null)
+                services.Remove(dbConnection);
+
+            services.AddSingleton<DbConnection>(_ =>
+            {
+                var connection = new SqliteConnection("Data Source=:memory:");
+                connection.Open();
+                return connection;
+            });
+
             services.AddDbContext<ApplicationDbContext>((provider, options) =>
-                options.UseSqlite(provider.GetRequiredService<SqliteConnection>()));
+                options.UseSqlite(provider.GetRequiredService<DbConnection>()));
 
             services.AddHostedService<TestDatabaseInitializer>();
         });
-    }
-
-    protected override void Dispose(bool disposing)
-    {
-        base.Dispose(disposing);
-
-        if (disposing)
-            _connection?.Dispose();
     }
 }
 
