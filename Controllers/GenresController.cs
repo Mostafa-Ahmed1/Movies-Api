@@ -1,63 +1,78 @@
-﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using MoviesAPI.Services;
 
-namespace MoviesAPI.Controllers
+namespace MoviesAPI.Controllers;
+
+[Route("api/[controller]")]
+[ApiController]
+public sealed class GenresController : ControllerBase
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    public class GenresController : ControllerBase
+    private const string GetGenreByIdRoute = "GetGenreById";
+
+    private readonly IGenresService _genresService;
+
+    public GenresController(IGenresService genresService)
     {
-        private readonly IGenresService _genresService;
+        _genresService = genresService;
+    }
 
-        public GenresController(IGenresService genresService)
-        {
-            _genresService=genresService;
-        }
+    [HttpGet]
+    [ProducesResponseType(typeof(IEnumerable<GenreDetailsDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<GenreDetailsDto>>> GetAllAsync(CancellationToken cancellationToken)
+    {
+        var genres = await _genresService.GetAllAsync(cancellationToken);
+        return Ok(genres.Select(genre => new GenreDetailsDto { Id = genre.Id, Name = genre.Name }));
+    }
 
-        [HttpGet]
-        public async Task<IActionResult> GetAllAsync()
-        {
-            var genres = await _genresService.GetAll();
+    [HttpGet("{id:int}", Name = GetGenreByIdRoute)]
+    [ProducesResponseType(typeof(GenreDetailsDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<GenreDetailsDto>> GetByIdAsync(byte id, CancellationToken cancellationToken)
+    {
+        var genre = await _genresService.GetByIdAsync(id, cancellationToken);
+        return genre is null
+            ? NotFound()
+            : Ok(new GenreDetailsDto { Id = genre.Id, Name = genre.Name });
+    }
 
-            return Ok(genres);
-        }
+    [HttpPost]
+    [ProducesResponseType(typeof(GenreDetailsDto), StatusCodes.Status201Created)]
+    public async Task<ActionResult<GenreDetailsDto>> CreateAsync(GenreDto dto, CancellationToken cancellationToken)
+    {
+        var genre = new Genre { Name = dto.Name.Trim() };
+        await _genresService.AddAsync(genre, cancellationToken);
 
-        [HttpPost]
-        public async Task<IActionResult> CreateAsync(GenreDto dto)
-        {
-            Genre genre = new() { Name=dto.Name };
+        var response = new GenreDetailsDto { Id = genre.Id, Name = genre.Name };
+        return CreatedAtRoute(GetGenreByIdRoute, new { id = genre.Id }, response);
+    }
 
-            await _genresService.Add(genre);
+    [HttpPut("{id:int}")]
+    [ProducesResponseType(typeof(GenreDetailsDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<GenreDetailsDto>> UpdateAsync(
+        byte id,
+        GenreDto dto,
+        CancellationToken cancellationToken)
+    {
+        var genre = await _genresService.GetByIdAsync(id, cancellationToken);
+        if (genre is null)
+            return NotFound();
 
-            return Ok(genre);
-        }
+        genre.Name = dto.Name.Trim();
+        await _genresService.UpdateAsync(genre, cancellationToken);
 
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateAsync(byte id,[FromBody] GenreDto dto)
-        {
-            var genre = await _genresService.GetById(id);
+        return Ok(new GenreDetailsDto { Id = genre.Id, Name = genre.Name });
+    }
 
-            if (genre == null)
-                return NotFound($"No genre was found with ID: {id}");
-            
-            genre.Name=dto.Name;
-            _genresService.Update(genre);
+    [HttpDelete("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteAsync(byte id, CancellationToken cancellationToken)
+    {
+        var genre = await _genresService.GetByIdAsync(id, cancellationToken);
+        if (genre is null)
+            return NotFound();
 
-            return Ok(genre);
-        }
-
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteAsync(byte id)
-        {
-            var genre = await _genresService.GetById(id);
-
-            if (genre == null)
-                return NotFound($"No genre was found with ID: {id}");
-
-            _genresService.Delete(genre);
-
-            return Ok(genre);
-        }
+        await _genresService.DeleteAsync(genre, cancellationToken);
+        return NoContent();
     }
 }

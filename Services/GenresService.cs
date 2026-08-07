@@ -1,51 +1,48 @@
-﻿namespace MoviesAPI.Services
+namespace MoviesAPI.Services;
+
+public sealed class GenresService : IGenresService
 {
-    public class GenresService : IGenresService
+    private readonly ApplicationDbContext _db;
+
+    public GenresService(ApplicationDbContext db)
     {
-        private readonly ApplicationDbContext db;
+        _db = db;
+    }
 
-        public GenresService(ApplicationDbContext db)
-        {
-            this.db=db;
-        }
+    public async Task<IReadOnlyList<Genre>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        return await _db.Genres
+            .AsNoTracking()
+            .OrderBy(genre => genre.Name)
+            .ToListAsync(cancellationToken);
+    }
 
-        public async Task<Genre> Add(Genre genre)
-        {
-            await db.AddAsync(genre);
-            db.SaveChanges();
+    public Task<Genre?> GetByIdAsync(byte id, CancellationToken cancellationToken = default)
+    {
+        return _db.Genres.SingleOrDefaultAsync(genre => genre.Id == id, cancellationToken);
+    }
 
-            return genre;
-        }
+    public async Task<Genre> AddAsync(Genre genre, CancellationToken cancellationToken = default)
+    {
+        await _db.Genres.AddAsync(genre, cancellationToken);
+        await _db.SaveChangesAsync(cancellationToken);
+        return genre;
+    }
 
-        public Genre Delete(Genre genre)
-        {
-            db.Remove(genre);
-            db.SaveChanges();
+    public async Task UpdateAsync(Genre genre, CancellationToken cancellationToken = default)
+    {
+        _db.Genres.Update(genre);
+        await _db.SaveChangesAsync(cancellationToken);
+    }
 
-            return genre;
-        }
+    public async Task DeleteAsync(Genre genre, CancellationToken cancellationToken = default)
+    {
+        _db.Genres.Remove(genre);
+        await _db.SaveChangesAsync(cancellationToken);
+    }
 
-        public async Task<IEnumerable<Genre>> GetAll()
-        {
-            return await db.Genres.OrderBy(g => g.Name).ToListAsync();
-        }
-
-        public async Task<Genre> GetById(byte id)
-        {
-            return await db.Genres.SingleOrDefaultAsync(g => g.Id == id);
-        }
-
-        public Task<bool> isValidGenre(byte id)
-        {
-            return db.Genres.AnyAsync(g => g.Id == id);
-        }
-
-        public Genre Update(Genre genre)
-        {
-            db.Update(genre);
-            db.SaveChanges();
-
-            return genre;
-        }
+    public Task<bool> ExistsAsync(byte id, CancellationToken cancellationToken = default)
+    {
+        return _db.Genres.AnyAsync(genre => genre.Id == id, cancellationToken);
     }
 }

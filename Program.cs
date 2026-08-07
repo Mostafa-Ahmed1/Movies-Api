@@ -1,78 +1,48 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using MoviesAPI.Models;
-
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' was not found.");
 
-var ConnetionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-options.UseSqlServer(ConnetionString));
+    options.UseSqlServer(connectionString));
 
 builder.Services.AddControllers();
-
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+builder.Services.AddProblemDetails();
 builder.Services.AddEndpointsApiExplorer();
 
-builder.Services.AddTransient<IGenresService, GenresService>();
-builder.Services.AddTransient<IMoviesService, MoviesService>();
+builder.Services.AddScoped<IGenresService, GenresService>();
+builder.Services.AddScoped<IMoviesService, MoviesService>();
 
-builder.Services.AddAutoMapper(typeof(Program));
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("Frontend", policy =>
+    {
+        var origins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+            ?? new[] { "http://localhost:4200" };
 
-builder.Services.AddCors();
+        policy.WithOrigins(origins)
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
 
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo
     {
         Version = "v1",
-        Title = "TestApi",
-        Description = "My First Api",
-        TermsOfService = new Uri("https://www.google.com.eg"),
-        Contact = new OpenApiContact
-        {
-            Name="Mostafa",
-            Email="test@domain.com",
-            Url=new Uri("https://www.google.com.eg")
-        },
-        License = new OpenApiLicense
-        {
-            Name = "My License",
-            Url=new Uri("https://www.google.com.eg")
-        }
-    });
-    options.AddSecurityDefinition("Bearer",new OpenApiSecurityScheme
-    {
-        Name="Authorization",
-        Type= SecuritySchemeType.ApiKey,
-        Scheme = "Bearer",
-        BearerFormat = "JWT",
-        In= ParameterLocation.Header,
-        Description="Enter your JWT Key"
-    });
-    options.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference
-                {
-                    Type= ReferenceType.SecurityScheme,
-                    Id="Bearer"
-                },
-                Name="Bearer",
-                In=ParameterLocation.Header
-            },
-            new List<string>()
-        }
+        Title = "Movies API",
+        Description = "A production-focused sample API for managing movies and genres."
     });
 });
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+app.UseExceptionHandler();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -80,11 +50,12 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
-app.UseCors(a=>a.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin());
-
+app.UseCors("Frontend");
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();
+
+public partial class Program
+{
+}

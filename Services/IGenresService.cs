@@ -1,12 +1,11 @@
-﻿namespace MoviesAPI.Services
+namespace MoviesAPI.Services;
+
+public interface IGenresService
 {
-    public interface IGenresService
-    {
-        Task<IEnumerable<Genre>> GetAll();
-        Task<Genre> GetById(byte id);
-        Task<Genre> Add(Genre genre); 
-        Genre Update(Genre genre); 
-        Genre Delete(Genre genre); 
-        Task<bool> isValidGenre(byte id);
-    }
+    Task<IReadOnlyList<Genre>> GetAllAsync(CancellationToken cancellationToken = default);
+    Task<Genre?> GetByIdAsync(byte id, CancellationToken cancellationToken = default);
+    Task<Genre> AddAsync(Genre genre, CancellationToken cancellationToken = default);
+    Task UpdateAsync(Genre genre, CancellationToken cancellationToken = default);
+    Task DeleteAsync(Genre genre, CancellationToken cancellationToken = default);
+    Task<bool> ExistsAsync(byte id, CancellationToken cancellationToken = default);
 }

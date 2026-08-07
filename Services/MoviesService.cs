@@ -1,50 +1,82 @@
-﻿namespace MoviesAPI.Services
+namespace MoviesAPI.Services;
+
+public sealed class MoviesService : IMoviesService
 {
-    public class MoviesService : IMoviesService
+    private readonly ApplicationDbContext _db;
+
+    public MoviesService(ApplicationDbContext db)
     {
-        private readonly ApplicationDbContext db;
+        _db = db;
+    }
 
-        public MoviesService(ApplicationDbContext db)
+    public async Task<PagedResult<Movie>> GetPageAsync(
+        MovieQueryParameters queryParameters,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _db.Movies
+            .AsNoTracking()
+            .Include(movie => movie.Genre)
+            .AsQueryable();
+
+        if (queryParameters.GenreId.HasValue)
+            query = query.Where(movie => movie.GenreId == queryParameters.GenreId.Value);
+
+        if (!string.IsNullOrWhiteSpace(queryParameters.Search))
         {
-            this.db=db;
+            var search = queryParameters.Search.Trim();
+            query = query.Where(movie =>
+                movie.Title.Contains(search) || movie.Storeline.Contains(search));
         }
 
-        public async Task<IEnumerable<Movie>> GetAll(byte genreId = 0)
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        query = (queryParameters.SortBy, queryParameters.SortDirection) switch
         {
-            return await db.Movies
-                .Where(m=>m.GenreId == genreId || genreId == 0)
-                .OrderByDescending(m => m.Rate)
-                .Include(m => m.Genre)
-                .ToListAsync();
-        }
+            (MovieSortBy.Title, SortDirection.Asc) => query.OrderBy(movie => movie.Title).ThenBy(movie => movie.Id),
+            (MovieSortBy.Title, SortDirection.Desc) => query.OrderByDescending(movie => movie.Title).ThenBy(movie => movie.Id),
+            (MovieSortBy.Year, SortDirection.Asc) => query.OrderBy(movie => movie.Year).ThenBy(movie => movie.Id),
+            (MovieSortBy.Year, SortDirection.Desc) => query.OrderByDescending(movie => movie.Year).ThenBy(movie => movie.Id),
+            (MovieSortBy.Rate, SortDirection.Asc) => query.OrderBy(movie => movie.Rate).ThenBy(movie => movie.Id),
+            _ => query.OrderByDescending(movie => movie.Rate).ThenBy(movie => movie.Id)
+        };
 
-        public async Task<Movie> GetById(int id)
+        var items = await query
+            .Skip((queryParameters.Page - 1) * queryParameters.PageSize)
+            .Take(queryParameters.PageSize)
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<Movie>
         {
-            return await db.Movies.Include(m => m.Genre).SingleOrDefaultAsync(m => m.Id==id);
-        }
+            Items = items,
+            Page = queryParameters.Page,
+            PageSize = queryParameters.PageSize,
+            TotalCount = totalCount
+        };
+    }
 
-        public async Task<Movie> Add(Movie movie)
-        {
-            await db.AddAsync(movie);
-            db.SaveChanges();
+    public Task<Movie?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
+    {
+        return _db.Movies
+            .Include(movie => movie.Genre)
+            .SingleOrDefaultAsync(movie => movie.Id == id, cancellationToken);
+    }
 
-            return movie;
-        }
+    public async Task<Movie> AddAsync(Movie movie, CancellationToken cancellationToken = default)
+    {
+        await _db.Movies.AddAsync(movie, cancellationToken);
+        await _db.SaveChangesAsync(cancellationToken);
+        return movie;
+    }
 
-        public Movie Update(Movie movie)
-        {
-            db.Update(movie);
-            db.SaveChanges();
+    public async Task UpdateAsync(Movie movie, CancellationToken cancellationToken = default)
+    {
+        _db.Movies.Update(movie);
+        await _db.SaveChangesAsync(cancellationToken);
+    }
 
-            return movie;
-        }
-
-        public Movie Delete(Movie movie)
-        {
-            db.Remove(movie);
-            db.SaveChanges();
-
-            return movie;
-        }
+    public async Task DeleteAsync(Movie movie, CancellationToken cancellationToken = default)
+    {
+        _db.Movies.Remove(movie);
+        await _db.SaveChangesAsync(cancellationToken);
     }
 }
