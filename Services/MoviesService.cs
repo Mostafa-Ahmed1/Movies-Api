@@ -9,20 +9,49 @@ public sealed class MoviesService : IMoviesService
         _db = db;
     }
 
-    public async Task<IReadOnlyList<Movie>> GetAllAsync(byte? genreId = null, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<Movie>> GetPageAsync(
+        MovieQueryParameters queryParameters,
+        CancellationToken cancellationToken = default)
     {
         var query = _db.Movies
             .AsNoTracking()
             .Include(movie => movie.Genre)
             .AsQueryable();
 
-        if (genreId.HasValue)
-            query = query.Where(movie => movie.GenreId == genreId.Value);
+        if (queryParameters.GenreId.HasValue)
+            query = query.Where(movie => movie.GenreId == queryParameters.GenreId.Value);
 
-        return await query
-            .OrderByDescending(movie => movie.Rate)
-            .ThenBy(movie => movie.Title)
+        if (!string.IsNullOrWhiteSpace(queryParameters.Search))
+        {
+            var search = queryParameters.Search.Trim();
+            query = query.Where(movie =>
+                movie.Title.Contains(search) || movie.Storeline.Contains(search));
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        query = (queryParameters.SortBy, queryParameters.SortDirection) switch
+        {
+            (MovieSortBy.Title, SortDirection.Asc) => query.OrderBy(movie => movie.Title).ThenBy(movie => movie.Id),
+            (MovieSortBy.Title, SortDirection.Desc) => query.OrderByDescending(movie => movie.Title).ThenBy(movie => movie.Id),
+            (MovieSortBy.Year, SortDirection.Asc) => query.OrderBy(movie => movie.Year).ThenBy(movie => movie.Id),
+            (MovieSortBy.Year, SortDirection.Desc) => query.OrderByDescending(movie => movie.Year).ThenBy(movie => movie.Id),
+            (MovieSortBy.Rate, SortDirection.Asc) => query.OrderBy(movie => movie.Rate).ThenBy(movie => movie.Id),
+            _ => query.OrderByDescending(movie => movie.Rate).ThenBy(movie => movie.Id)
+        };
+
+        var items = await query
+            .Skip((queryParameters.Page - 1) * queryParameters.PageSize)
+            .Take(queryParameters.PageSize)
             .ToListAsync(cancellationToken);
+
+        return new PagedResult<Movie>
+        {
+            Items = items,
+            Page = queryParameters.Page,
+            PageSize = queryParameters.PageSize,
+            TotalCount = totalCount
+        };
     }
 
     public Task<Movie?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
