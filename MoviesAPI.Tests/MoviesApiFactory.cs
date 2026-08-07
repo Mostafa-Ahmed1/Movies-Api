@@ -70,16 +70,37 @@ internal sealed class TestDatabaseInitializer : IHostedService
         dbContext.Genres.AddRange(action, drama);
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        dbContext.Movies.Add(new Movie
-        {
-            Title = "The Matrix",
-            Year = 1999,
-            Rate = 8.7,
-            Storeline = "A hacker discovers the world is a simulated reality.",
-            Poster = new byte[] { 1, 2, 3 },
-            GenreId = action.Id,
-            Genre = action
-        });
+        dbContext.Movies.AddRange(
+            new Movie
+            {
+                Title = "The Matrix",
+                Year = 1999,
+                Rate = 8.7,
+                Storeline = "A hacker discovers the world is a simulated reality.",
+                Poster = new byte[] { 1, 2, 3 },
+                GenreId = action.Id,
+                Genre = action
+            },
+            new Movie
+            {
+                Title = "Gladiator",
+                Year = 2000,
+                Rate = 8.5,
+                Storeline = "A Roman general fights for justice in the arena.",
+                Poster = new byte[] { 4, 5, 6 },
+                GenreId = action.Id,
+                Genre = action
+            },
+            new Movie
+            {
+                Title = "The Godfather",
+                Year = 1972,
+                Rate = 9.2,
+                Storeline = "A crime family navigates power, loyalty, and succession.",
+                Poster = new byte[] { 7, 8, 9 },
+                GenreId = drama.Id,
+                Genre = drama
+            });
 
         await dbContext.SaveChangesAsync(cancellationToken);
     }
