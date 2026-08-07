@@ -1,8 +1,7 @@
-﻿namespace MoviesAPI.Dtos
+namespace MoviesAPI.Dtos;
+
+public sealed class GenreDto
 {
-    public class GenreDto
-    {
-        [MaxLength(100)]
-        public string Name { get; set; }
-    }
+    [Required, MaxLength(100)]
+    public string Name { get; set; } = string.Empty;
 }
