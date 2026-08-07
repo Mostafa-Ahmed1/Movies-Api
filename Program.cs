@@ -1,4 +1,4 @@
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using MoviesAPI.Models;
 
 var builder = WebApplication.CreateBuilder(args);
