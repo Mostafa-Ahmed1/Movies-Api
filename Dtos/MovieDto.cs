@@ -1,19 +1,21 @@
-﻿namespace MoviesAPI.Dtos
+namespace MoviesAPI.Dtos;
+
+public sealed class MovieDto
 {
-    public class MovieDto
-    {
-        [MaxLength(250)]
-        public string Title { get; set; }
+    [Required, MaxLength(250)]
+    public string Title { get; set; } = string.Empty;
 
-        public int Year { get; set; }
+    [Range(1888, 2100)]
+    public int Year { get; set; }
 
-        public double Rate { get; set; }
+    [Range(0, 10)]
+    public double Rate { get; set; }
 
-        [MaxLength(2500)]
-        public string Storeline { get; set; }
+    [Required, MaxLength(2500)]
+    public string Storeline { get; set; } = string.Empty;
 
-        public IFormFile? Poster { get; set; }
+    public IFormFile? Poster { get; set; }
 
-        public byte GenreId { get; set; }
-    }
+    [Range(1, byte.MaxValue)]
+    public byte GenreId { get; set; }
 }
