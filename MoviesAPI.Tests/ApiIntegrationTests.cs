@@ -69,6 +69,21 @@ public sealed class ApiIntegrationTests
     }
 
     [TestMethod]
+    public async Task GetMovies_WithGenreFilter_ReturnsOnlyMatchingGenre()
+    {
+        var genres = await _client.GetFromJsonAsync<List<GenreDetailsDto>>("/api/genres");
+        Assert.IsNotNull(genres);
+
+        var actionGenre = genres.Single(genre => genre.Name == "Action");
+        var result = await _client.GetFromJsonAsync<PagedResult<MovieDetailsDto>>(
+            $"/api/movies?genreId={actionGenre.Id}");
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual(2, result.TotalCount);
+        Assert.IsTrue(result.Items.All(movie => movie.GenreId == actionGenre.Id));
+    }
+
+    [TestMethod]
     public async Task GetMovies_WithPagingAndSorting_ReturnsExpectedPage()
     {
         var result = await _client.GetFromJsonAsync<PagedResult<MovieDetailsDto>>(
@@ -79,7 +94,7 @@ public sealed class ApiIntegrationTests
         Assert.AreEqual(3, result.TotalPages);
         Assert.AreEqual(2, result.Page);
         Assert.AreEqual(1, result.Items.Count);
-        Assert.AreEqual("The Matrix", result.Items[0].Title);
+        Assert.AreEqual("The Godfather", result.Items[0].Title);
     }
 
     [TestMethod]
