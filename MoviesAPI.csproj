@@ -8,6 +8,9 @@
 
   <ItemGroup>
     <Compile Remove="MoviesAPI.Tests/**/*.cs" />
+    <Content Remove="MoviesAPI.Tests/**" />
+    <EmbeddedResource Remove="MoviesAPI.Tests/**" />
+    <None Remove="MoviesAPI.Tests/**" />
   </ItemGroup>
 
   <ItemGroup>
