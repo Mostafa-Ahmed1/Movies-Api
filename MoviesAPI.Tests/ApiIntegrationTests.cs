@@ -41,15 +41,53 @@ public sealed class ApiIntegrationTests
     }
 
     [TestMethod]
-    public async Task GetMovies_ReturnsSeededMovie()
+    public async Task GetMovies_ReturnsPagedMoviesOrderedByRateDescending()
     {
         var response = await _client.GetAsync("/api/movies");
 
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
 
-        var movies = await response.Content.ReadFromJsonAsync<List<MovieDetailsDto>>();
-        Assert.IsNotNull(movies);
-        Assert.IsTrue(movies.Any(movie => movie.Title == "The Matrix" && movie.GenreName == "Action"));
+        var result = await response.Content.ReadFromJsonAsync<PagedResult<MovieDetailsDto>>();
+        Assert.IsNotNull(result);
+        Assert.AreEqual(3, result.TotalCount);
+        Assert.AreEqual(1, result.Page);
+        Assert.AreEqual(10, result.PageSize);
+        Assert.AreEqual(1, result.TotalPages);
+        Assert.AreEqual("The Godfather", result.Items[0].Title);
+        Assert.IsTrue(result.Items.Any(movie => movie.Title == "The Matrix" && movie.GenreName == "Action"));
+    }
+
+    [TestMethod]
+    public async Task GetMovies_WithSearch_ReturnsMatchingMoviesOnly()
+    {
+        var result = await _client.GetFromJsonAsync<PagedResult<MovieDetailsDto>>("/api/movies?search=Matrix");
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual(1, result.TotalCount);
+        Assert.AreEqual(1, result.Items.Count);
+        Assert.AreEqual("The Matrix", result.Items[0].Title);
+    }
+
+    [TestMethod]
+    public async Task GetMovies_WithPagingAndSorting_ReturnsExpectedPage()
+    {
+        var result = await _client.GetFromJsonAsync<PagedResult<MovieDetailsDto>>(
+            "/api/movies?page=2&pageSize=1&sortBy=Title&sortDirection=Asc");
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual(3, result.TotalCount);
+        Assert.AreEqual(3, result.TotalPages);
+        Assert.AreEqual(2, result.Page);
+        Assert.AreEqual(1, result.Items.Count);
+        Assert.AreEqual("The Matrix", result.Items[0].Title);
+    }
+
+    [TestMethod]
+    public async Task GetMovies_WithInvalidPageSize_ReturnsBadRequest()
+    {
+        var response = await _client.GetAsync("/api/movies?pageSize=1000");
+
+        Assert.AreEqual(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
     [TestMethod]
