@@ -1,50 +1,53 @@
-﻿namespace MoviesAPI.Services
+namespace MoviesAPI.Services;
+
+public sealed class MoviesService : IMoviesService
 {
-    public class MoviesService : IMoviesService
+    private readonly ApplicationDbContext _db;
+
+    public MoviesService(ApplicationDbContext db)
     {
-        private readonly ApplicationDbContext db;
+        _db = db;
+    }
 
-        public MoviesService(ApplicationDbContext db)
-        {
-            this.db=db;
-        }
+    public async Task<IReadOnlyList<Movie>> GetAllAsync(byte? genreId = null, CancellationToken cancellationToken = default)
+    {
+        var query = _db.Movies
+            .AsNoTracking()
+            .Include(movie => movie.Genre)
+            .AsQueryable();
 
-        public async Task<IEnumerable<Movie>> GetAll(byte genreId = 0)
-        {
-            return await db.Movies
-                .Where(m=>m.GenreId == genreId || genreId == 0)
-                .OrderByDescending(m => m.Rate)
-                .Include(m => m.Genre)
-                .ToListAsync();
-        }
+        if (genreId.HasValue)
+            query = query.Where(movie => movie.GenreId == genreId.Value);
 
-        public async Task<Movie> GetById(int id)
-        {
-            return await db.Movies.Include(m => m.Genre).SingleOrDefaultAsync(m => m.Id==id);
-        }
+        return await query
+            .OrderByDescending(movie => movie.Rate)
+            .ThenBy(movie => movie.Title)
+            .ToListAsync(cancellationToken);
+    }
 
-        public async Task<Movie> Add(Movie movie)
-        {
-            await db.AddAsync(movie);
-            db.SaveChanges();
+    public Task<Movie?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
+    {
+        return _db.Movies
+            .Include(movie => movie.Genre)
+            .SingleOrDefaultAsync(movie => movie.Id == id, cancellationToken);
+    }
 
-            return movie;
-        }
+    public async Task<Movie> AddAsync(Movie movie, CancellationToken cancellationToken = default)
+    {
+        await _db.Movies.AddAsync(movie, cancellationToken);
+        await _db.SaveChangesAsync(cancellationToken);
+        return movie;
+    }
 
-        public Movie Update(Movie movie)
-        {
-            db.Update(movie);
-            db.SaveChanges();
+    public async Task UpdateAsync(Movie movie, CancellationToken cancellationToken = default)
+    {
+        _db.Movies.Update(movie);
+        await _db.SaveChangesAsync(cancellationToken);
+    }
 
-            return movie;
-        }
-
-        public Movie Delete(Movie movie)
-        {
-            db.Remove(movie);
-            db.SaveChanges();
-
-            return movie;
-        }
+    public async Task DeleteAsync(Movie movie, CancellationToken cancellationToken = default)
+    {
+        _db.Movies.Remove(movie);
+        await _db.SaveChangesAsync(cancellationToken);
     }
 }
