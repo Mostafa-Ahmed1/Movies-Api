@@ -1,15 +1,10 @@
-﻿
+namespace MoviesAPI.Models;
 
-
-namespace MoviesAPI.Models
+public class Genre
 {
-    public class Genre
-    {
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public Byte Id { get; set; }
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    public byte Id { get; set; }
 
-        [MaxLength(100)]
-        public string Name { get; set; }
-
-    }
+    [MaxLength(100)]
+    public string Name { get; set; } = string.Empty;
 }
