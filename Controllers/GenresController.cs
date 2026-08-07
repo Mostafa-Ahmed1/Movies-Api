@@ -6,6 +6,8 @@ namespace MoviesAPI.Controllers;
 [ApiController]
 public sealed class GenresController : ControllerBase
 {
+    private const string GetGenreByIdRoute = "GetGenreById";
+
     private readonly IGenresService _genresService;
 
     public GenresController(IGenresService genresService)
@@ -21,7 +23,7 @@ public sealed class GenresController : ControllerBase
         return Ok(genres.Select(genre => new GenreDetailsDto { Id = genre.Id, Name = genre.Name }));
     }
 
-    [HttpGet("{id:int}")]
+    [HttpGet("{id:int}", Name = GetGenreByIdRoute)]
     [ProducesResponseType(typeof(GenreDetailsDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<GenreDetailsDto>> GetByIdAsync(byte id, CancellationToken cancellationToken)
@@ -40,7 +42,7 @@ public sealed class GenresController : ControllerBase
         await _genresService.AddAsync(genre, cancellationToken);
 
         var response = new GenreDetailsDto { Id = genre.Id, Name = genre.Name };
-        return CreatedAtAction(nameof(GetByIdAsync), new { id = genre.Id }, response);
+        return CreatedAtRoute(GetGenreByIdRoute, new { id = genre.Id }, response);
     }
 
     [HttpPut("{id:int}")]
