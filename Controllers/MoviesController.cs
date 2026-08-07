@@ -28,13 +28,20 @@ public sealed class MoviesController : ControllerBase
     }
 
     [HttpGet]
-    [ProducesResponseType(typeof(IEnumerable<MovieDetailsDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<MovieDetailsDto>>> GetAllAsync(
-        [FromQuery] byte? genreId,
+    [ProducesResponseType(typeof(PagedResult<MovieDetailsDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResult<MovieDetailsDto>>> GetAllAsync(
+        [FromQuery] MovieQueryParameters queryParameters,
         CancellationToken cancellationToken)
     {
-        var movies = await _moviesService.GetAllAsync(genreId, cancellationToken);
-        return Ok(movies.Select(movie => movie.ToDetailsDto()));
+        var result = await _moviesService.GetPageAsync(queryParameters, cancellationToken);
+
+        return Ok(new PagedResult<MovieDetailsDto>
+        {
+            Items = result.Items.Select(movie => movie.ToDetailsDto()).ToList(),
+            Page = result.Page,
+            PageSize = result.PageSize,
+            TotalCount = result.TotalCount
+        });
     }
 
     [HttpGet("{id:int}", Name = GetMovieByIdRoute)]
