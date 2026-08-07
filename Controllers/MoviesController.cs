@@ -7,6 +7,8 @@ namespace MoviesAPI.Controllers;
 [ApiController]
 public sealed class MoviesController : ControllerBase
 {
+    private const string GetMovieByIdRoute = "GetMovieById";
+
     private static readonly HashSet<string> AllowedPosterExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
         ".jpg",
@@ -35,7 +37,7 @@ public sealed class MoviesController : ControllerBase
         return Ok(movies.Select(movie => movie.ToDetailsDto()));
     }
 
-    [HttpGet("{id:int}")]
+    [HttpGet("{id:int}", Name = GetMovieByIdRoute)]
     [ProducesResponseType(typeof(MovieDetailsDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<MovieDetailsDto>> GetByIdAsync(int id, CancellationToken cancellationToken)
@@ -79,7 +81,7 @@ public sealed class MoviesController : ControllerBase
         await _moviesService.AddAsync(movie, cancellationToken);
 
         var response = movie.ToDetailsDto();
-        return CreatedAtAction(nameof(GetByIdAsync), new { id = movie.Id }, response);
+        return CreatedAtRoute(GetMovieByIdRoute, new { id = movie.Id }, response);
     }
 
     [HttpPut("{id:int}")]
