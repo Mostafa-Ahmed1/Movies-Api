@@ -1,22 +1,21 @@
-﻿namespace MoviesAPI.Models
+namespace MoviesAPI.Models;
+
+public class Movie
 {
-    public class Movie
-    {
-        public int Id { get; set; }
-        [MaxLength(250)]
-        public string Title { get; set; }
+    public int Id { get; set; }
 
-        public int Year { get; set; }
+    [MaxLength(250)]
+    public string Title { get; set; } = string.Empty;
 
-        public double Rate { get; set; }
+    public int Year { get; set; }
 
-        [MaxLength(2500)]
-        public string Storeline { get; set; }
+    public double Rate { get; set; }
 
-        public byte[] Poster { get; set; }
+    [MaxLength(2500)]
+    public string Storeline { get; set; } = string.Empty;
 
-        public byte GenreId { get; set; }
-        public Genre Genre { get; set; }
+    public byte[] Poster { get; set; } = Array.Empty<byte>();
 
-    }
+    public byte GenreId { get; set; }
+    public Genre Genre { get; set; } = null!;
 }
