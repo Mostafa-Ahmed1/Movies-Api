@@ -21,7 +21,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("Frontend", policy =>
     {
         var origins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
-            ?? ["http://localhost:4200"];
+            ?? new[] { "http://localhost:4200" };
 
         policy.WithOrigins(origins)
             .AllowAnyHeader()
@@ -56,4 +56,6 @@ app.MapControllers();
 
 app.Run();
 
-public partial class Program;
+public partial class Program
+{
+}
